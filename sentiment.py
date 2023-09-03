@@ -2,15 +2,21 @@ from flask import Flask, jsonify
 from flask import request
 from flasgger import Swagger, LazyString, LazyJSONEncoder
 from flasgger import swag_from
+import matplotlib.pyplot as plt
+import seaborn as sns
 import tensorflow as tf
-import pickle, re
+import pickle
 import numpy as np
 import sklearn
 import pandas as pd
+import re
+import emoji
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from clean import cleansing
 
 #Flask and Swagger endpoint
 sentiment_app = Flask(__name__)
@@ -32,13 +38,18 @@ swagger_config = {
             'route': '/docs.json',
         }
     ],
-    'static_url_path': "/flasgger_static",
+    'static_url_path': '/flasgger_static',
     'swagger_ui': True,
-    'specs_route': "/docs/"
+    'specs_route': '/docs/'
 }
 swagger = Swagger(sentiment_app, template=swagger_template,             
                   config=swagger_config)
 
+
+# Homepage route
+@sentiment_app.route('/')
+def homepage():
+    return render_template('homepage.html')
 
 #Tools to run the function 
 max_features = 100000
@@ -46,20 +57,23 @@ sentiment = ['negative', 'neutral', 'positive']
 tokenizer = Tokenizer(num_words=max_features, split=' ', lower=True)
 #===================================================================
 #Vectorizing For Neural Network
-#count_vect = pickle.load(open("resources_nn/mockup.pkl","rb"))
+#count_vect = pickle.load(open('resources_nn/mockup.pkl','rb'))
+count_vect = 'resources_nn/mockup.pkl'
+with open(count_vect, 'rb') as file:
+    file_data = pickle.load(file)
 
 #Load Model for Neural Network
-#model_NN = load_model('resources_nn/model.h5')
+model_NN = load_model('resources_nn/model.h5')
 #===================================================================
 #Load Feature Extraction for LSTM
-#file = pickle.load(open("resources_lstm/mockup.pkl",'rb'))
+file = pickle.load(open('resources_lstm/mockup.pkl','rb'))
 
 #Load Model for LSTM
-#model_LSTM = load_model('resources_lstm/model.h5')
+model_LSTM = load_model('resources_lstm/model.h5')
 #===================================================================              
 
 #Func API Neural Network (text)
-@swag_from("docs/NN_text.yml", methods=['POST'])
+@swag_from('docs/NN_text.yml', methods=['POST'])
 @sentiment_app.route('/NN_text', methods=['POST'])
 def NN_text():
     #Request text 
@@ -73,7 +87,7 @@ def NN_text():
 
     json_response = {
         'status_code': 200,
-        'description': "Result of Sentiment Analysis using Neural Network",
+        'description': 'Result of Sentiment Analysis using Neural Network',
         'data' : {
             'text' : original_text,
             'sentiment' : result 
@@ -85,7 +99,7 @@ def NN_text():
 
 #===================================================================
 #Func API for Neural Netwrok(File)
-@swag_from("docs/NN_file.yml", methods=['POST'])
+@swag_from('docs/NN_file.yml', methods=['POST'])
 @sentiment_app.route('/NN_file', methods=['POST'])
 def NN_file():
     #upload file
@@ -108,7 +122,7 @@ def NN_file():
 
     json_response = {
         'status_code': 200,
-        'description': "Result of Sentiment Analysis using Neural Network",
+        'description': 'Result of Sentiment Analysis using Neural Network',
         'data': {
             'text' : original_text,
             'sentiment' : result
@@ -122,7 +136,7 @@ def NN_file():
 #==================================================================
 
 #Func API LSTM(Text)
-@swag_from("docs/LSTM_text.yml",methods=['POST'])
+@swag_from('docs/LSTM_text.yml',methods=['POST'])
 @sentiment_app.route('/LSTM_text',methods=['POST'])
 def LSTM_text():
     #Request text 
@@ -139,7 +153,7 @@ def LSTM_text():
     get_sentiment = sentiment[np.argmax(prediction[0])]
     json_response = {
       'status_code' : 200,
-        'description' : "Result of Sentiment Analysis using LSTM",
+        'description' : 'Result of Sentiment Analysis using LSTM',
         'data' : {
             'text' : original_text,
             'sentiment' : get_sentiment
@@ -151,7 +165,7 @@ def LSTM_text():
 #===================================================================
 
 #Func API LSTM(File)
-@swag_from("docs/LSTM_file.yml",methods=['POST'])
+@swag_from('docs/LSTM_file.yml',methods=['POST'])
 @sentiment_app.route('/LSTM_file',methods=['POST'])
 def LSTM_file():
     # Upladed file
@@ -179,7 +193,7 @@ def LSTM_file():
 
     json_response = {
         'status_code' : 200,
-        'description' : "Result of Sentiment Analysis from csv file using LSTM",
+        'description' : 'Result of Sentiment Analysis from csv file using LSTM',
         'data' : {
             'text' : original,
             'sentiment' : result
@@ -192,4 +206,4 @@ def LSTM_file():
 #===================================================================
 #Run API 
 if __name__ == '__main__' :
-    sentiment_app.run(debug=False)
+    sentiment_app.run(debug=True)
