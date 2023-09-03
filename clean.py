@@ -1,7 +1,11 @@
 import re
 import emoji
 import pandas as pd
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
 
+# Additional Data for Normalization
+stopwords_indonesian = stopwords.words('indonesian')
 abusive = pd.read_csv('Data/abusive.csv', encoding='utf-8')
 new_kamusalay = pd.read_csv('Data/new_kamusalay.csv', encoding='latin1')
 
@@ -10,8 +14,8 @@ abusive_words = abusive['ABUSIVE'].tolist()
 new_kamus_alay = {}
 for k,v in new_kamusalay.values:
     new_kamus_alay[k] = v
-new_kamus_alay
 
+# Remove Emoji
 def remove_emojis(original_text):
     # Check if original_text is a string
     if not isinstance(original_text, str):
@@ -63,29 +67,47 @@ def cleanse_word(original_text):
     cleaned_word = " ".join(alay_check)
     return cleaned_word
 
-# Cleaning operation
-def cleansing(tweets):
-    cleaned_tweets = []
-    for tweet in tweets:
-        tweet = remove_emojis(tweet)
-        tweet = cleanse_text(tweet)
+# Remove stopwords
+def remove_stopwords(sentence):
+    tokenized_sentence = nltk.word_tokenize(sentence)
+    new_tokenized_sentence = []
+    
+    for token in tokenized_sentence:
+        if token in stopwords_indonesian:
+            continue
+        else:
+            new_tokenized_sentence.append(token)
+    
+    return ' '.join(new_tokenized_sentence)
 
-        words = tweet.split()
-        cleansed_words = [cleanse_word(word) for word in words if word]
 
-        cleansed_tweet = ' '.join(cleansed_words)
+#==================================================================================
+# Cleaning operation text
+def cleansing_text(text):
+    text = remove_emojis(text)
+    text = cleanse_text(text)
+    text = remove_stopwords(text)
 
-        cleaned_tweets.append(cleansed_tweet)
-
-    return cleaned_tweets
-
-def cleansing(tweet):
-    tweet = remove_emojis(tweet)
-    tweet = cleanse_text(tweet)
-
-    words = tweet.split()  # Apply word-level cleansing operations
+    words = text.split()  # Apply word-level cleansing operations
     cleansed_words = [cleanse_word(word) for word in words]
 
-    cleansed_tweet = ' '.join(cleansed_words)  # Join the cleansed words back into a tweet
+    cleaned_text = ' '.join(cleansed_words)  # Join the cleansed words back into a tweet
 
-    return cleaned_tweet
+    return cleaned_text
+
+# Cleaning operation file
+def cleansing_file(texts):
+    cleaned_texts = []
+    for text in texts:
+        text = remove_emojis(text)
+        text = cleanse_text(text)
+        text = remove_stopwords(text)
+
+        words = text.split()
+        cleansed_words = [cleanse_word(word) for word in words if word]
+
+        cleansed_text = ' '.join(cleansed_words)
+
+        cleaned_texts.append(cleansed_text)
+
+    return cleaned_texts
